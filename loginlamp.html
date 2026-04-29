@@ -1,0 +1,473 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login Lamp</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --on: 0;
+    --bg-dark: #0e1014;
+    --bg-light: #1c2230;
+    --lamp-glow: rgba(255, 210, 120, calc(var(--on) * 0.6));
+    --form-glow: rgba(255, 200, 100, calc(var(--on) * 0.15));
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+min-height: 100vh;
+background: #0e1014;
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: 'DM Sans', sans-serif;
+overflow: hidden;
+transition: background 0.8s ease;
+position: relative;
+}
+
+body.light-on {
+background: #1a2133;
+}
+
+/* Ambient glow on floor */
+.floor-glow {
+position: fixed;
+bottom: 0;
+left: 50%;
+transform: translateX(-50%);
+width: 500px;
+height: 300px;
+background: radial-gradient(ellipse at 30% 100%, rgba(255,200,80,0) 0%, transparent 70%);
+pointer-events: none;
+transition: background 0.8s ease;
+z-index: 0;
+}
+
+body.light-on .floor-glow {
+background: radial-gradient(ellipse at 30% 100%, rgba(255,200,80,0.18) 0%, transparent 70%);
+}
+
+.scene {
+display: flex;
+align-items: center;
+gap: 48px;
+z-index: 1;
+position: relative;
+}
+
+/* –– LAMP –– */
+.lamp-wrap {
+position: relative;
+width: 200px;
+display: flex;
+flex-direction: column;
+align-items: center;
+cursor: none;
+user-select: none;
+}
+
+/* Cone glow behind shade */
+.lamp-cone {
+position: absolute;
+top: 80px;
+left: 50%;
+transform: translateX(-50%);
+width: 0;
+height: 0;
+border-left: 90px solid transparent;
+border-right: 90px solid transparent;
+border-top: 220px solid rgba(255,210,100,0);
+pointer-events: none;
+transition: border-top-color 0.8s ease;
+z-index: -1;
+}
+
+body.light-on .lamp-cone {
+border-top-color: rgba(255,210,100,0.13);
+}
+
+.lamp-shade {
+width: 120px;
+height: 60px;
+background: linear-gradient(180deg, #c8c8c8 0%, #e8e8e8 60%, #fff 100%);
+border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+position: relative;
+box-shadow: 0 -6px 30px rgba(255,210,100,0), inset 0 -4px 12px rgba(0,0,0,0.15);
+transition: box-shadow 0.8s ease;
+}
+
+body.light-on .lamp-shade {
+box-shadow: 0 -6px 30px rgba(255,200,80,0.55), inset 0 -4px 12px rgba(0,0,0,0.1), 0 2px 40px rgba(255,210,100,0.4);
+}
+
+/* Inner glow of bulb */
+.lamp-shade::after {
+content: '';
+position: absolute;
+bottom: 0;
+left: 50%;
+transform: translateX(-50%);
+width: 40px;
+height: 25px;
+background: radial-gradient(ellipse, rgba(255,240,180,0) 0%, transparent 100%);
+border-radius: 50%;
+transition: background 0.6s ease;
+}
+
+body.light-on .lamp-shade::after {
+background: radial-gradient(ellipse, rgba(255,240,180,1) 0%, rgba(255,210,100,0.5) 60%, transparent 100%);
+}
+
+.lamp-neck {
+width: 14px;
+height: 80px;
+background: linear-gradient(90deg, #bbb, #e0e0e0, #bbb);
+border-radius: 4px;
+}
+
+.lamp-base {
+width: 80px;
+height: 16px;
+background: linear-gradient(180deg, #ccc, #aaa);
+border-radius: 8px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* Rope + knob */
+.rope-container {
+position: absolute;
+left: 50%;
+top: 56px;
+transform: translateX(8px);
+display: flex;
+flex-direction: column;
+align-items: center;
+z-index: 10;
+}
+
+.rope {
+width: 2px;
+background: linear-gradient(180deg, #888, #aaa, #888);
+border-radius: 1px;
+transition: height 0.1s;
+height: 36px;
+}
+
+.rope-knob {
+width: 14px;
+height: 14px;
+background: radial-gradient(circle at 40% 35%, #f0c060, #c8902a);
+border-radius: 50%;
+box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+cursor: grab;
+transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.rope-knob:active, .rope-knob.dragging {
+cursor: grabbing;
+transform: scale(1.2);
+box-shadow: 0 4px 12px rgba(255,180,50,0.6);
+}
+
+/* Custom cursor */
+.custom-cursor {
+position: fixed;
+width: 18px;
+height: 18px;
+border: 2px solid rgba(255,200,80,0.7);
+border-radius: 50%;
+pointer-events: none;
+z-index: 9999;
+transform: translate(-50%, -50%);
+transition: transform 0.1s, opacity 0.2s;
+mix-blend-mode: screen;
+}
+
+/* –– FORM –– */
+.login-card {
+background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.08);
+border-radius: 20px;
+padding: 40px 36px;
+width: 300px;
+backdrop-filter: blur(12px);
+box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+transition: box-shadow 0.8s ease, border-color 0.8s ease;
+}
+
+body.light-on .login-card {
+box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 60px rgba(255,190,60,0.12), 0 0 0 1px rgba(255,200,80,0.15);
+border-color: rgba(255,200,80,0.2);
+}
+
+.login-card h2 {
+font-family: 'Cormorant Garamond', serif;
+font-size: 28px;
+font-weight: 300;
+color: rgba(255,255,255,0.85);
+text-align: center;
+margin-bottom: 28px;
+letter-spacing: 0.05em;
+}
+
+.field-group {
+margin-bottom: 18px;
+}
+
+.field-group label {
+display: block;
+font-size: 11px;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+color: rgba(255,255,255,0.4);
+margin-bottom: 7px;
+}
+
+.field-group input {
+width: 100%;
+padding: 11px 14px;
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.1);
+border-radius: 10px;
+color: rgba(255,255,255,0.8);
+font-size: 14px;
+font-family: 'DM Sans', sans-serif;
+outline: none;
+transition: border-color 0.3s, background 0.3s;
+}
+
+.field-group input:focus {
+border-color: rgba(255,190,60,0.5);
+background: rgba(255,255,255,0.09);
+}
+
+.field-group input::placeholder {
+color: rgba(255,255,255,0.2);
+}
+
+.btn-signin {
+width: 100%;
+padding: 13px;
+margin-top: 10px;
+background: linear-gradient(135deg, #c8902a, #f0c060, #c8902a);
+background-size: 200% 100%;
+background-position: 100% 0;
+border: none;
+border-radius: 10px;
+color: #1a1200;
+font-family: 'DM Sans', sans-serif;
+font-size: 14px;
+font-weight: 400;
+letter-spacing: 0.08em;
+cursor: pointer;
+transition: background-position 0.4s ease, box-shadow 0.3s;
+box-shadow: 0 4px 16px rgba(200,140,40,0.25);
+}
+
+.btn-signin:hover {
+background-position: 0% 0;
+box-shadow: 0 6px 24px rgba(255,190,60,0.45);
+}
+
+/* Hint text */
+.hint {
+text-align: center;
+margin-top: 20px;
+font-size: 11px;
+color: rgba(255,255,255,0.2);
+letter-spacing: 0.05em;
+transition: color 0.5s;
+}
+
+body.light-on .hint {
+color: rgba(255,200,80,0.4);
+}
+
+/* Stars / dark particles */
+.stars {
+position: fixed;
+inset: 0;
+pointer-events: none;
+z-index: 0;
+}
+
+.star {
+position: absolute;
+background: #fff;
+border-radius: 50%;
+opacity: 0;
+transition: opacity 0.8s;
+}
+
+body:not(.light-on) .star {
+opacity: var(–star-op, 0.3);
+}
+</style>
+
+</head>
+<body>
+
+<div class="custom-cursor" id="cursor"></div>
+<div class="floor-glow"></div>
+<canvas class="stars" id="stars"></canvas>
+
+<div class="scene">
+  <!-- LAMP -->
+  <div class="lamp-wrap" id="lampWrap">
+    <div class="lamp-cone"></div>
+    <div class="lamp-shade"></div>
+    <div class="rope-container" id="ropeContainer">
+      <div class="rope" id="rope"></div>
+      <div class="rope-knob" id="ropeKnob"></div>
+    </div>
+    <div class="lamp-neck"></div>
+    <div class="lamp-base"></div>
+  </div>
+
+  <!-- LOGIN FORM -->
+
+  <div class="login-card">
+    <h2>Welcome</h2>
+    <div class="field-group">
+      <label>Username</label>
+      <input type="text" placeholder="your name" />
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••" />
+    </div>
+    <button class="btn-signin">Sign In</button>
+    <p class="hint">Pull the rope to turn on the lamp</p>
+  </div>
+</div>
+
+<script>
+  const body = document.body;
+  const cursor = document.getElementById('cursor');
+  const ropeKnob = document.getElementById('ropeKnob');
+  const rope = document.getElementById('rope');
+  const hint = document.querySelector('.hint');
+
+  let isOn = false;
+  let isDragging = false;
+  let startY = 0;
+  let currentPull = 0;
+  const PULL_THRESHOLD = 70;
+  const MAX_ROPE = 90;
+  const BASE_ROPE = 36;
+
+  // Custom cursor
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+
+  // Stars background
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  for (let i = 0; i < 120; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const r = Math.random() * 1.2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.5 + 0.1})`;
+    ctx.fill();
+  }
+
+  function toggleLamp() {
+    isOn = !isOn;
+    body.classList.toggle('light-on', isOn);
+    document.documentElement.style.setProperty('--on', isOn ? '1' : '0');
+    hint.textContent = isOn ? 'Pull again to turn off' : 'Pull the rope to turn on the lamp';
+
+    // Click sound
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.frequency.value = isOn ? 800 : 400;
+    gain.gain.setValueAtTime(0.15, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.15);
+    osc.start(); osc.stop(ac.currentTime + 0.15);
+  }
+
+  // Drag rope
+  ropeKnob.addEventListener('mousedown', e => {
+    isDragging = true;
+    startY = e.clientY;
+    currentPull = 0;
+    ropeKnob.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dy = e.clientY - startY;
+    currentPull = Math.max(0, Math.min(dy, MAX_ROPE));
+    rope.style.height = (BASE_ROPE + currentPull * 0.6) + 'px';
+    // Slight cursor shift
+    cursor.style.transform = `translate(-50%, -50%) scale(${1 + currentPull / 120})`;
+  });
+
+  document.addEventListener('mouseup', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    ropeKnob.classList.remove('dragging');
+    cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+
+    if (currentPull >= PULL_THRESHOLD) {
+      toggleLamp();
+    }
+
+    // Snap rope back with spring
+    let h = BASE_ROPE + currentPull * 0.6;
+    const snap = () => {
+      h = h + (BASE_ROPE - h) * 0.25;
+      rope.style.height = h + 'px';
+      if (Math.abs(h - BASE_ROPE) > 0.5) requestAnimationFrame(snap);
+      else rope.style.height = BASE_ROPE + 'px';
+    };
+    requestAnimationFrame(snap);
+    currentPull = 0;
+  });
+
+  // Touch support
+  ropeKnob.addEventListener('touchstart', e => {
+    isDragging = true;
+    startY = e.touches[0].clientY;
+    currentPull = 0;
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dy = e.touches[0].clientY - startY;
+    currentPull = Math.max(0, Math.min(dy, MAX_ROPE));
+    rope.style.height = (BASE_ROPE + currentPull * 0.6) + 'px';
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (currentPull >= PULL_THRESHOLD) toggleLamp();
+    let h = BASE_ROPE + currentPull * 0.6;
+    const snap = () => {
+      h = h + (BASE_ROPE - h) * 0.25;
+      rope.style.height = h + 'px';
+      if (Math.abs(h - BASE_ROPE) > 0.5) requestAnimationFrame(snap);
+      else rope.style.height = BASE_ROPE + 'px';
+    };
+    requestAnimationFrame(snap);
+    currentPull = 0;
+  });
+</script>
+
+</body>
+</html>
