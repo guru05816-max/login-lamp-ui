@@ -14,4 +14,4 @@ An interactive login page with a rope-pull lamp toggle.
 HTML · CSS3 · Vanilla JavaScript · Web Audio API
 
 ## Live Demo
-[https://guru05816-max.github.io/login-lamp-ui/](#) ← (Click here)
+[https://guru05816-max.github.io/login-lamp-ui/] ← (Click here)
